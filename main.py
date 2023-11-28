@@ -122,32 +122,48 @@ def extract_segment(inv_number, channel):
     
 def new_customer(url):
     df = pd.read_csv(url)
-    #take only 'Date','ID','Nama Pelanggan','Alamat','Kota','Provinsi','Kode pos','Telepon' column
     df = df[['Date','ID','Nama Pelanggan','Alamat','Kota','Provinsi','Kode pos','Telepon']]
-    # convert Telepon to str and clean it
-    df['Telepon'] = df['Telepon'].astype(str)
-    df['Telepon'] = df['Telepon'].str.replace('.0','')
-    df['Telepon'] = df['Telepon'].str.replace('nan','')
-    # filling na on date column
+    df['Telepon'] = df['Telepon'].astype(str).str.replace('.0','').str.replace('nan','')
     df['Date'].ffill(inplace=True)
-    # filling na on kode pos column
     df['Kode pos'] = df['Kode pos'].fillna('')
-    # cleaning customer name
     df['Nama Pelanggan'] = df['Nama Pelanggan'].str.strip()
-    # final filling na
     df = df.fillna('')
-    # final duplicate drop
     df.drop_duplicates(subset=['ID'], inplace=True)
     
     with open(customer_names_json) as f:
         data = json.load(f)
-
-    for index,row in df.iterrows():
+    
+    values_list = []
+    for index, row in df.iterrows():
         if row['ID'] not in data:
-            data[row['ID']] = row['Nama Pelanggan'].replace('\u00a0', ' ')
-            print(f"New customer added: {row['Nama Pelanggan']}")
-            with open('env/customer_names.json', 'w') as outfile:
-                json.dump(data, outfile, indent=4)
+            new_customer_name = row['Nama Pelanggan'].replace('\u00a0', ' ')
+            data[row['ID']] = new_customer_name
+            print(f"New customer added: {new_customer_name}")
+            values_list.append((row['ID'], new_customer_name, row['Alamat'], row['Kota'], row['Provinsi'], row['Kode pos'], row['Telepon'], '', ''))
+        else:
+            continue
+
+    with open(customer_names_json, 'w') as outfile:
+        json.dump(data, outfile, indent=4)
+
+    if values_list:
+        query = 'INSERT INTO customer(customer_id, customer_name, customer_address, regency, province, postal_code, customer_contact, customer_pic, customer_email) VALUES ' + ','.join([str(v) for v in values_list])
+        return query
+    else:
+        print('No new customer found')
+        return None
+
+def insert_new_customer(query):
+    host = env.db_config['host']
+    user = env.db_config['user']
+    password = env.db_config['password']
+    database = env.db_config['database']
+
+    connection = pymysql.connect(host=host, user=user, password=password, db=database)
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+    connection.commit()
+    connection.close()
 
 def clean(datapath):
 
@@ -621,8 +637,12 @@ if __name__ == "__main__":
     customer_url = f"https://docs.google.com/spreadsheets/d/1ZjeukSSxbYccdee2bYZl3ldZ4ib2PCJE66I-Q5RwNyM/gviz/tq?tqx=out:csv&sheet=Sheet1"
 
     print(bold('\n===============Updating customer credentials===============\n'))
-    # update customer names
-    new_customer(customer_url)
+    newcustomer = new_customer(customer_url)
+    if newcustomer is not None:
+        insert_new_customer(newcustomer)
+    else:
+        print("No new customer query to execute")
+
 
     print(bold('\n===============Loading customer names files===============\n'))
     with open(customer_names_json, 'r', encoding='utf-8') as f:
