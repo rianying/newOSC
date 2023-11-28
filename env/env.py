@@ -7,3 +7,10 @@ insert = {
     "smr": "/Volumes/PUBLIC/SC-Humay/SC_DATAMART/PANEL&SMR/SMR_JKT_DIY.xlsx",
     "panel": "/Volumes/PUBLIC/SC-Humay/SC_DATAMART/PANEL&SMR/INV Panel.xlsx"
 }
+
+db_config = {
+    'user': 'root',
+    'password': 'sarwa',
+    'host': 'localhost',
+    'database': 'osc_clone'
+}

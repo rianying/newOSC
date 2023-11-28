@@ -526,7 +526,12 @@ def generate_query(data, customer_names, po_expire):
     return full_query
 
 def insert(query):
-    connection = pymysql.connect(host='192.168.1.219', user='root', password='sarwa', db='osc_clone')
+    host = env.db_config['host']
+    user = env.db_config['user']
+    password = env.db_config['password']
+    database = env.db_config['database']
+
+    connection = pymysql.connect(host=host, user=user, password=password, db=database)
     messages = None
 
     try:
