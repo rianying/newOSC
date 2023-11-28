@@ -119,6 +119,35 @@ def extract_segment(inv_number, channel):
         if not parts[smr_index + 1].startswith('23'):# It's a compound segment, add the next part to the segment
             segment += '/' + parts[smr_index + 1]
         return segment
+    
+def new_customer(url):
+    df = pd.read_csv(url)
+    #take only 'Date','ID','Nama Pelanggan','Alamat','Kota','Provinsi','Kode pos','Telepon' column
+    df = df[['Date','ID','Nama Pelanggan','Alamat','Kota','Provinsi','Kode pos','Telepon']]
+    # convert Telepon to str and clean it
+    df['Telepon'] = df['Telepon'].astype(str)
+    df['Telepon'] = df['Telepon'].str.replace('.0','')
+    df['Telepon'] = df['Telepon'].str.replace('nan','')
+    # filling na on date column
+    df['Date'].ffill(inplace=True)
+    # filling na on kode pos column
+    df['Kode pos'] = df['Kode pos'].fillna('')
+    # cleaning customer name
+    df['Nama Pelanggan'] = df['Nama Pelanggan'].str.strip()
+    # final filling na
+    df = df.fillna('')
+    # final duplicate drop
+    df.drop_duplicates(subset=['ID'], inplace=True)
+    
+    with open(customer_names_json) as f:
+        data = json.load(f)
+
+    for index,row in df.iterrows():
+        if row['ID'] not in data:
+            data[row['ID']] = row['Nama Pelanggan'].replace('\u00a0', ' ')
+            print(f"New customer added: {row['Nama Pelanggan']}")
+            with open('env/customer_names.json', 'w') as outfile:
+                json.dump(data, outfile, indent=4)
 
 def clean(datapath):
 
@@ -546,29 +575,29 @@ def insert(query):
                         count += 1
                     except Exception as e:
                         print(f"\nError executing Query {i+1}: {e}\n")  # Print detailed error
-                        messages = twilio_client.messages.create(
-                            from_=twilio_phone_number,
-                            body=f"Error executing query {i+1}: {e}",
-                            to=to_phone_number
-                        )
+                        # messages = twilio_client.messages.create(
+                        #     from_=twilio_phone_number,
+                        #     body=f"Error executing query {i+1}: {e}",
+                        #     to=to_phone_number
+                        # )
         connection.commit()
         print("\nAll queries executed successfully\n")
-        messages = twilio_client.messages.create(
-            from_=twilio_phone_number,
-            body=f"Database has been updated.",
-            to=to_phone_number
-        )
+        # messages = twilio_client.messages.create(
+        #     from_=twilio_phone_number,
+        #     body=f"Database has been updated.",
+        #     to=to_phone_number
+        # )
     except Exception as e:
-        messages = twilio_client.messages.create(
-            from_=twilio_phone_number,
-            body=f"Error executing queries: {e}",
-            to=to_phone_number
-        )
+        # messages = twilio_client.messages.create(
+        #     from_=twilio_phone_number,
+        #     body=f"Error executing queries: {e}",
+        #     to=to_phone_number
+        # )
         print("\nERROR IN DATABASE OPERATION: {}\n".format(e))
     finally:
         connection.close()
     
-    return messages
+    # return messages
 
 if __name__ == "__main__":
 
@@ -589,7 +618,11 @@ if __name__ == "__main__":
     start_code_smr = env.insert['start_code_smr']
     start_code_panel = env.insert['start_code_panel']
     po_expire_json = env.insert['po_expire']
+    customer_url = f"https://docs.google.com/spreadsheets/d/1ZjeukSSxbYccdee2bYZl3ldZ4ib2PCJE66I-Q5RwNyM/gviz/tq?tqx=out:csv&sheet=Sheet1"
 
+    print(bold('\n===============Updating customer credentials===============\n'))
+    # update customer names
+    new_customer(customer_url)
 
     print(bold('\n===============Loading customer names files===============\n'))
     with open(customer_names_json, 'r', encoding='utf-8') as f:
@@ -607,11 +640,11 @@ if __name__ == "__main__":
 
             if smr_exists:
                 print(f'\n{smr_path} file found, cleaning it\n')
-                message = twilio_client.messages.create(
-                    from_=twilio_phone_number,
-                    body=f"SMR file found, {random.choice(magic_loading_texts).lower()}",
-                    to=to_phone_number
-                )
+                # message = twilio_client.messages.create(
+                #     from_=twilio_phone_number,
+                #     body=f"SMR file found, {random.choice(magic_loading_texts).lower()}",
+                #     to=to_phone_number
+                # )
                 cleaned = clean(smr_path)
                 print('\nProcessing cleaned file\n')
                 processed = process(cleaned)
@@ -629,11 +662,11 @@ if __name__ == "__main__":
 
             if panel_exists:
                 print(f'\n{panel_path} file found, cleaning it\n')
-                message = twilio_client.messages.create(
-                    from_=twilio_phone_number,
-                    body=f"PANEL file found, {random.choice(magic_loading_texts).lower()}",
-                    to=to_phone_number
-                )
+                # message = twilio_client.messages.create(
+                #     from_=twilio_phone_number,
+                #     body=f"PANEL file found, {random.choice(magic_loading_texts).lower()}",
+                #     to=to_phone_number
+                # )
                 cleaned = clean(panel_path)
                 print('\nProcessing cleaned file\n')
                 processed = process(cleaned)
