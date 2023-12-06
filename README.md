@@ -5,6 +5,7 @@ The `newOSC` repository contains a Python application designed for specific oper
 
 ## Features
 - **Main Application**: The `main.py` script serves as the entry point for the application.
+- **Helper**: The `reset.py` script serves to reset the value of `startcodepanel.json` and `startcodesmr.json` for testing
 - **Environment Configuration**: The `env` directory contains several configuration files and scripts, including `env.py`, `tokens.py`, `customer_names.json`, `missing_segment.txt`, `po_expire.json`, `startcodepanel.json`, and `startcodesmr.json`, which are used for setting up and managing the environment.
 - **Dependencies**: The `requirements.txt` file lists all the Python dependencies required to run the application.
 
